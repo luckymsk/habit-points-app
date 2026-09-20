@@ -85,6 +85,14 @@ h2{font-size:16px;margin:18px 4px 10px;color:#e8e0ff;letter-spacing:.4px;text-tr
 .cheer .bubble .pts{font-size:16px;color:var(--accent);font-weight:700}
 footer{max-width:640px;margin:26px auto 0;padding:0 16px;color:#bdaef0;font-size:12px;text-align:center;line-height:1.6}
 footer button{background:none;border:none;color:#e8e0ff;text-decoration:underline;font-size:12px;cursor:pointer}
+.chartcard{background:var(--card);color:var(--ink);border-radius:20px;padding:14px 16px;margin-top:6px}
+#chart{width:100%;height:210px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.leg{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#4a4266}
+.dot{width:12px;height:12px;border-radius:4px;display:inline-block}
+.motline{margin-top:8px;font-size:13px;font-weight:700;color:#5a4d8f}
+.streak{position:absolute;top:6px;left:8px;background:rgba(0,0,0,.22);border-radius:10px;
+ color:#fff;font-size:12px;font-weight:800;padding:4px 8px}
 </style>
 </head>
 <body>
@@ -103,6 +111,12 @@ footer button{background:none;border:none;color:#e8e0ff;text-decoration:underlin
   <h2>Tap a tile to earn points</h2>
   <div id="tiles"></div>
   <button id="undoBtn" disabled>↩ Undo last award</button>
+  <h2>Behavior chart — last 7 days</h2>
+  <div class="chartcard">
+    <canvas id="chart"></canvas>
+    <div class="legend" id="legend"></div>
+    <div class="motline" id="motline"></div>
+  </div>
   <h2>Recent awards</h2>
   <div id="history"></div>
 </main>
@@ -147,7 +161,68 @@ const KEY="habitPoints.v1";
 const AVATARS=["👸","🤴","🦄","🐯","🦊","🐼","🐸","🐰","🦁","🐶","🐱","🐵","🐷","🐥","🦋","🐢","🦖","🐙"];
 const ICONS=["☀️","🪥","🤝","📚","🏃","🥗","🧹","🎨","🎵","⚽","🧘","💧","🌙","🧠","✏️","🧸","🚲","🌱","🎯","💡"];
 const COLORS=["#7c5cff","#ff5d8f","#00b894","#f9a825","#039be5","#8d6e63","#ab47bc","#ef5350"];
-const CHEERS=["Amazing!","Superstar!","Way to go!","You did it!","Fantastic!","Keep it up!","Wonderful!","Brilliant!","High five!","Shining bright!"];
+const CHEERS=["Amazing!","Superstar!","Way to go!","You did it!","Fantastic!","Keep it up!","Wonderful!","Brilliant!","High five!","Shining bright!","One step closer!","Discipline pays!","Small wins add up!","Consistency is king!"];
+const MILESTONES=[100,250,500,1000,2500,5000,10000];
+const dayKey=ts=>{const d=new Date(ts);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+
+function streakFor(tileId,p){
+ if(!p||!p.history)return 0;
+ const days=new Set();
+ p.history.forEach(r=>{if(r.tileId===tileId)days.add(dayKey(r.ts));});
+ let streak=0;const d=new Date();
+ if(!days.has(dayKey(d.getTime())))d.setDate(d.getDate()-1); /* streak alive if done yesterday */
+ while(days.has(dayKey(d.getTime()))){streak++;d.setDate(d.getDate()-1);}
+ return streak;
+}
+function weekPoints(p){
+ if(!p)return{byDay:[],byTile:{},total:0};
+ const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(dayKey(d.getTime()));}
+ const byDay=days.map(k=>({key:k,tiles:{},total:0}));
+ const idx={};byDay.forEach((b,i)=>idx[b.key]=i);
+ const byTile={};let total=0;
+ p.history.forEach(r=>{const i=idx[dayKey(r.ts)];
+  if(i===undefined)return;
+  byDay[i].total+=r.points;byDay[i].tiles[r.tileId]=(byDay[i].tiles[r.tileId]||0)+r.points;
+  byTile[r.tileId]=(byTile[r.tileId]||0)+r.points;total+=r.points;});
+ return{byDay,byTile,total};
+}
+function renderChart(){
+ const c=document.getElementById("chart");if(!c)return;
+ const dpr=window.devicePixelRatio||1,W=c.clientWidth,H=210;
+ c.width=W*dpr;c.height=H*dpr;
+ const x=c.getContext("2d");x.scale(dpr,dpr);x.clearRect(0,0,W,H);
+ const p=active();const tiles=visibleTiles();
+ const wk=weekPoints(p);
+ const maxV=Math.max(10,...wk.byDay.map(b=>b.total));
+ const padL=30,padB=26,padT=10,cw=(W-padL-8)/7,bw=Math.min(34,cw*0.62);
+ const y0=H-padB;
+ x.font="10px sans-serif";x.fillStyle="#8a7fb0";x.textAlign="right";
+ [0,.5,1].forEach(f=>{const v=Math.round(maxV*f),y=y0-(H-padT-padB)*f;
+  x.fillText(v,padL-6,y+3);x.strokeStyle="#f0ecff";x.beginPath();x.moveTo(padL,y);x.lineTo(W-4,y);x.stroke();});
+ wk.byDay.forEach((b,i)=>{
+  const bx=padL+i*cw+(cw-bw)/2;
+  let yy=y0;
+  tiles.forEach(t=>{const v=b.tiles[t.id]||0;if(!v)return;
+   const h=(H-padT-padB)*v/maxV;
+   x.fillStyle=t.color;x.beginPath();
+   const r=Math.min(4,bw/2,h);
+   x.roundRect(bx,yy-h,bw,h,r);x.fill();yy-=h;});
+  const d=new Date();d.setDate(d.getDate()-(6-i));
+  x.fillStyle=i===6?"#7c5cff":"#8a7fb0";x.textAlign="center";x.fontWeight=i===6?"800":"400";
+  x.fillText("SMTWTFS"[d.getDay()],bx+bw/2,H-8);x.fontWeight="400";
+ });
+ const lg=document.getElementById("legend");lg.innerHTML="";
+ tiles.forEach(t=>{const v=wk.byTile[t.id]||0;
+  const s=document.createElement("span");s.className="leg";
+  s.innerHTML=`<span class="dot" style="background:${t.color}"></span>${esc(t.name)} · ${v}`;lg.appendChild(s);});
+ const ml=document.getElementById("motline");
+ if(!p){ml.textContent="Create a profile to start tracking.";}
+ else{
+  let best=0;tiles.forEach(t=>{best=Math.max(best,streakFor(t.id,p));});
+  if(wk.total===0)ml.textContent="Tap a tile to start your week — every point counts! 💪";
+  else ml.textContent=`${wk.total} points this week${best>=2?` · 🔥 best streak ${best} days`:""} — keep the streak alive!`;
+ }
+}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
 function seed(){return{activeProfileId:null,profiles:[],tiles:[
@@ -193,7 +268,9 @@ function render(){
  visibleTiles().forEach(t=>{
   const b=document.createElement("button");
   b.className="tile";b.style.background=`linear-gradient(145deg,${t.color},${t.color}cc)`;
-  b.innerHTML=`<button class="edit" title="Edit tile">✎</button><span class="em">${esc(t.icon)}</span><span>${esc(t.name)}</span><span class="tp">+${t.points}</span>`;
+  const st=p?streakFor(t.id,p):0;
+  const streakBadge=st>=2?`<span class="streak">🔥 ${st}</span>`:"";
+  b.innerHTML=`${streakBadge}<button class="edit" title="Edit tile">✎</button><span class="em">${esc(t.icon)}</span><span>${esc(t.name)}</span><span class="tp">+${t.points}</span>`;
   b.querySelector(".edit").onclick=e=>{e.stopPropagation();openTileModal(t);};
   b.onclick=()=>award(t);
   tg.appendChild(b);
@@ -206,6 +283,7 @@ function render(){
  if(!p||!p.history.length){h.innerHTML='<div class="empty">No awards yet — tap a tile to start!</div>';}
  else{h.innerHTML=p.history.slice(0,12).map(r=>
   `<div class="histrow"><div><div>${esc(r.icon)} ${esc(r.tileName)}</div><div class="t">${new Date(r.ts).toLocaleString()}</div></div><div class="p">+${r.points}</div></div>`).join("");}
+ renderChart();
 }
 
 /* ---------- awarding ---------- */
@@ -215,7 +293,17 @@ function award(t){
  p.points+=t.points;
  p.history=p.history||[];
  p.history.unshift({ts:Date.now(),tileId:t.id,tileName:t.name,icon:t.icon,points:t.points});
- save();render();cheer(t);
+ p.milestones=p.milestones||[];
+ const hit=MILESTONES.filter(m=>p.points>=m&&!p.milestones.includes(m)).pop();
+ if(hit!==undefined){p.milestones.push(hit);}
+ save();render();
+ if(hit!==undefined){
+  document.getElementById("cheerIcon").textContent="🏆";
+  document.getElementById("cheerMsg").textContent=`Milestone — ${hit} points!`;
+  document.getElementById("cheerPts").textContent=`${esc(p.name)} is on fire. Keep going!`;
+  const c=document.getElementById("cheer");c.classList.add("open");
+  clearTimeout(c._t);c._t=setTimeout(()=>c.classList.remove("open"),2200);
+ }else cheer(t);
 }
 function undo(){
  const p=active();if(!p||!p.history.length)return;
