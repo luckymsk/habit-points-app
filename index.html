@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Habit Points</title>
+<title>Small Wins</title>
 <meta name="theme-color" content="#7c5cff">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -98,7 +98,7 @@ footer button{background:none;border:none;color:#e8e0ff;text-decoration:underlin
 <body>
 <header>
   <div>
-    <h1><span class="star">⭐</span> Habit Points</h1>
+    <h1><span class="star">⭐</span> Small Wins</h1>
     <div class="sub">No sign-up · everything stays on this device</div>
   </div>
 </header>
@@ -405,7 +405,7 @@ document.getElementById("importFile").onchange=e=>{
  r.onload=()=>{try{const d=JSON.parse(r.result);
    if(!d.profiles||!d.tiles)throw 0;
    if(!confirm("Replace everything with this backup?"))return;
-   S=d;save();render();}catch(_){alert("That file doesn't look like a Habit Points backup.");}};
+   S=d;save();render();}catch(_){alert("That file doesn't look like a Small Wins backup.");}};
  r.readAsText(f);e.target.value="";
 };
 
