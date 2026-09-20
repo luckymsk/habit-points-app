@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Habit Points</title>
+<meta name="theme-color" content="#7c5cff">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg1:#2b1a5e;--bg2:#4a2b8f;--card:#ffffff;--ink:#2d2340;--muted:#8a7fb0;--accent:#7c5cff;--gold:#ffcf3f}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+ background:linear-gradient(160deg,var(--bg1),var(--bg2));color:#fff;min-height:100vh;padding-bottom:40px}
+header{padding:18px 16px 6px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:24px;letter-spacing:.5px}
+h1 .star{color:var(--gold)}
+.sub{color:#cbbcf5;font-size:13px;margin-top:2px}
+#profiles{display:flex;gap:10px;overflow-x:auto;padding:10px 16px 4px;scrollbar-width:none}
+#profiles::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);
+ border:2px solid transparent;border-radius:999px;padding:7px 14px 7px 8px;color:#fff;cursor:pointer;font-size:15px;transition:.15s}
+.chip .av{font-size:26px}
+.chip.active{background:#fff;color:var(--ink);border-color:var(--gold);box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.chip.add{border:2px dashed rgba(255,255,255,.45);font-size:22px;padding:7px 14px}
+main{max-width:640px;margin:0 auto;padding:0 16px}
+.scorecard{background:var(--card);color:var(--ink);border-radius:22px;padding:18px;margin:12px 0;
+ display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.scorecard .pts{font-size:44px;font-weight:800;color:var(--accent)}
+.scorecard .pts small{font-size:15px;color:var(--muted);font-weight:600;display:block}
+.scorecard .who{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
+.scorecard .who .av{font-size:42px}
+.iconbtn{background:#f2efff;border:none;border-radius:12px;font-size:18px;padding:8px 12px;cursor:pointer}
+.iconbtn:hover{background:#e4dcff}
+h2{font-size:16px;margin:18px 4px 10px;color:#e8e0ff;letter-spacing:.4px;text-transform:uppercase;font-weight:700}
+#tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.tile{border:none;border-radius:20px;padding:16px 10px 14px;cursor:pointer;color:#fff;font-size:15px;font-weight:700;
+ box-shadow:0 6px 16px rgba(0,0,0,.22);position:relative;transition:transform .08s;min-height:120px;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.tile:active{transform:scale(.96)}
+.tile .em{font-size:42px;line-height:1}
+.tile .tp{background:rgba(255,255,255,.28);border-radius:999px;padding:3px 12px;font-size:13px;font-weight:800}
+.tile .edit{position:absolute;top:6px;right:8px;background:rgba(0,0,0,.18);border:none;border-radius:10px;
+ color:#fff;font-size:14px;padding:4px 8px;cursor:pointer}
+.addtile{border:3px dashed rgba(255,255,255,.5);background:rgba(255,255,255,.07);color:#fff;font-size:17px;
+ font-weight:700;border-radius:20px;cursor:pointer;min-height:120px;display:flex;align-items:center;justify-content:center;gap:8px}
+.addtile:active{transform:scale(.97)}
+#history{background:var(--card);color:var(--ink);border-radius:20px;padding:14px 16px;margin-top:6px}
+.histrow{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid #f0ecff;font-size:14px}
+.histrow:last-child{border-bottom:none}
+.histrow .t{color:var(--muted);font-size:12px}
+.histrow .p{font-weight:800;color:var(--accent)}
+.empty{color:var(--muted);text-align:center;padding:14px;font-size:14px}
+#undoBtn{display:block;width:100%;margin:14px 0 0;background:rgba(255,255,255,.14);color:#fff;border:2px solid rgba(255,255,255,.3);
+ border-radius:14px;padding:12px;font-size:16px;font-weight:700;cursor:pointer}
+#undoBtn:disabled{opacity:.35}
+#undoBtn:not(:disabled):active{transform:scale(.98)}
+.modal{position:fixed;inset:0;background:rgba(20,10,50,.65);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.modal.open{display:flex}
+.sheet{background:#fff;color:var(--ink);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:20px 20px 34px;
+ max-height:88vh;overflow-y:auto;animation:up .22s ease}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.sheet h3{font-size:19px;margin-bottom:14px}
+.sheet label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.4px}
+.sheet input[type=text],.sheet input[type=number]{width:100%;border:2px solid #e8e2ff;border-radius:12px;
+ padding:12px;font-size:16px;color:var(--ink)}
+.sheet input:focus{outline:none;border-color:var(--accent)}
+.pickrow{display:flex;flex-wrap:wrap;gap:8px}
+.pick{font-size:30px;border:3px solid #eee;border-radius:14px;padding:6px 10px;cursor:pointer;background:#faf8ff}
+.pick.sel{border-color:var(--accent);background:#efe9ff}
+.swatch{width:44px;height:44px;border-radius:14px;border:3px solid #eee;cursor:pointer}
+.swatch.sel{border-color:var(--ink)}
+.btnrow{display:flex;gap:10px;margin-top:20px}
+.btn{flex:1;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:800;cursor:pointer}
+.btn.pri{background:var(--accent);color:#fff}
+.btn.sec{background:#f1edff;color:var(--accent)}
+.btn.danger{background:#ffe9ea;color:#d33}
+.cheer{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:60;pointer-events:none}
+.cheer.open{display:flex}
+.cheer .bubble{background:#fff;color:var(--ink);border-radius:26px;padding:26px 30px;text-align:center;
+ box-shadow:0 20px 60px rgba(0,0,0,.4);animation:pop .35s cubic-bezier(.2,1.6,.4,1);max-width:84vw}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.cheer .bubble .big{font-size:56px}
+.cheer .bubble .msg{font-size:20px;font-weight:800;margin:8px 0 4px}
+.cheer .bubble .pts{font-size:16px;color:var(--accent);font-weight:700}
+footer{max-width:640px;margin:26px auto 0;padding:0 16px;color:#bdaef0;font-size:12px;text-align:center;line-height:1.6}
+footer button{background:none;border:none;color:#e8e0ff;text-decoration:underline;font-size:12px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1><span class="star">⭐</span> Habit Points</h1>
+    <div class="sub">No sign-up · everything stays on this device</div>
+  </div>
+</header>
+<div id="profiles"></div>
+<main>
+  <div class="scorecard">
+    <div class="who"><span class="av" id="scoreAv">🙂</span><span id="scoreName">—</span></div>
+    <div class="pts"><span id="scorePts">0</span><small>points</small></div>
+  </div>
+  <h2>Tap a tile to earn points</h2>
+  <div id="tiles"></div>
+  <button id="undoBtn" disabled>↩ Undo last award</button>
+  <h2>Recent awards</h2>
+  <div id="history"></div>
+</main>
+<footer>
+  <p>Points and profiles are stored only in this browser/device — nothing is uploaded anywhere.</p>
+  <p><button id="exportBtn">Save backup</button> · <button id="importBtn">Restore backup</button>
+  <input type="file" id="importFile" accept="application/json" style="display:none"></p>
+</footer>
+
+<div class="modal" id="profileModal"><div class="sheet">
+  <h3 id="pmTitle">New profile</h3>
+  <label>Name</label><input type="text" id="pmName" maxlength="24" placeholder="e.g. Lucky">
+  <label>Pick a picture</label><div class="pickrow" id="pmAvatars"></div>
+  <div class="btnrow">
+    <button class="btn sec" id="pmCancel">Cancel</button>
+    <button class="btn danger" id="pmDelete" style="display:none">Delete</button>
+    <button class="btn pri" id="pmSave">Save</button>
+  </div>
+</div></div>
+
+<div class="modal" id="tileModal"><div class="sheet">
+  <h3 id="tmTitle">New tile</h3>
+  <label>Habit name</label><input type="text" id="tmName" maxlength="40" placeholder="e.g. Read a book">
+  <label>Pick a symbol</label><div class="pickrow" id="tmIcons"></div>
+  <label>Tile color</label><div class="pickrow" id="tmColors"></div>
+  <label>Points per tap</label><input type="number" id="tmPoints" min="1" max="100" value="5">
+  <div class="btnrow">
+    <button class="btn sec" id="tmCancel">Cancel</button>
+    <button class="btn danger" id="tmDelete" style="display:none">Delete</button>
+    <button class="btn pri" id="tmSave">Save</button>
+  </div>
+</div></div>
+
+<div class="cheer" id="cheer"><div class="bubble">
+  <div class="big" id="cheerIcon">🎉</div>
+  <div class="msg" id="cheerMsg">Amazing!</div>
+  <div class="pts" id="cheerPts">+5 points</div>
+</div></div>
+<script>
+"use strict";
+const KEY="habitPoints.v1";
+const AVATARS=["👸","🤴","🦄","🐯","🦊","🐼","🐸","🐰","🦁","🐶","🐱","🐵","🐷","🐥","🦋","🐢","🦖","🐙"];
+const ICONS=["☀️","🪥","🤝","📚","🏃","🥗","🧹","🎨","🎵","⚽","🧘","💧","🌙","🧠","✏️","🧸","🚲","🌱","🎯","💡"];
+const COLORS=["#7c5cff","#ff5d8f","#00b894","#f9a825","#039be5","#8d6e63","#ab47bc","#ef5350"];
+const CHEERS=["Amazing!","Superstar!","Way to go!","You did it!","Fantastic!","Keep it up!","Wonderful!","Brilliant!","High five!","Shining bright!"];
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+function seed(){return{activeProfileId:null,profiles:[],tiles:[
+ {id:uid(),name:"Wake up independently",icon:"☀️",color:"#f9a825",points:5,hidden:false},
+ {id:uid(),name:"Brush teeth",icon:"🪥",color:"#039be5",points:5,hidden:false},
+ {id:uid(),name:"Help out",icon:"🤝",color:"#00b894",points:10,hidden:false},
+ {id:uid(),name:"Learn something",icon:"📚",color:"#7c5cff",points:10,hidden:false}
+]};}
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))||seed();}catch(e){S=seed();}
+if(!S.tiles)S=seed();
+function save(){localStorage.setItem(KEY,JSON.stringify(S));}
+function active(){return S.profiles.find(p=>p.id===S.activeProfileId)||null;}
+function visibleTiles(){return S.tiles.filter(t=>!t.hidden);}
+
+/* ---------- rendering ---------- */
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+function renderProfiles(){
+ const el=document.getElementById("profiles");el.innerHTML="";
+ S.profiles.forEach(p=>{
+  const b=document.createElement("button");
+  b.className="chip"+(p.id===S.activeProfileId?" active":"");
+  b.innerHTML=`<span class="av">${esc(p.avatar)}</span><span>${esc(p.name)}</span>`;
+  b.title="Tap to switch · long-press to edit";
+  b.onclick=()=>{S.activeProfileId=p.id;save();render();};
+  let t; b.onpointerdown=()=>{t=setTimeout(()=>openProfileModal(p),600);};
+  b.onpointerup=()=>clearTimeout(t); b.onpointerleave=()=>clearTimeout(t);
+  el.appendChild(b);
+ });
+ const add=document.createElement("button");
+ add.className="chip add";add.textContent="＋";add.title="New profile";
+ add.onclick=()=>openProfileModal(null);el.appendChild(add);
+}
+
+function render(){
+ renderProfiles();
+ const p=active();
+ document.getElementById("scoreAv").textContent=p?p.avatar:"🙂";
+ document.getElementById("scoreName").textContent=p?p.name:"No profile yet";
+ document.getElementById("scorePts").textContent=p?p.points:0;
+ const tg=document.getElementById("tiles");tg.innerHTML="";
+ visibleTiles().forEach(t=>{
+  const b=document.createElement("button");
+  b.className="tile";b.style.background=`linear-gradient(145deg,${t.color},${t.color}cc)`;
+  b.innerHTML=`<button class="edit" title="Edit tile">✎</button><span class="em">${esc(t.icon)}</span><span>${esc(t.name)}</span><span class="tp">+${t.points}</span>`;
+  b.querySelector(".edit").onclick=e=>{e.stopPropagation();openTileModal(t);};
+  b.onclick=()=>award(t);
+  tg.appendChild(b);
+ });
+ const a=document.createElement("button");
+ a.className="addtile";a.innerHTML="＋ New tile";a.onclick=()=>openTileModal(null);
+ tg.appendChild(a);
+ document.getElementById("undoBtn").disabled=!(p&&p.history&&p.history.length);
+ const h=document.getElementById("history");
+ if(!p||!p.history.length){h.innerHTML='<div class="empty">No awards yet — tap a tile to start!</div>';}
+ else{h.innerHTML=p.history.slice(0,12).map(r=>
+  `<div class="histrow"><div><div>${esc(r.icon)} ${esc(r.tileName)}</div><div class="t">${new Date(r.ts).toLocaleString()}</div></div><div class="p">+${r.points}</div></div>`).join("");}
+}
+
+/* ---------- awarding ---------- */
+function award(t){
+ const p=active();
+ if(!p){openProfileModal(null);return;}
+ p.points+=t.points;
+ p.history=p.history||[];
+ p.history.unshift({ts:Date.now(),tileId:t.id,tileName:t.name,icon:t.icon,points:t.points});
+ save();render();cheer(t);
+}
+function undo(){
+ const p=active();if(!p||!p.history.length)return;
+ const r=p.history.shift();
+ p.points=Math.max(0,p.points-r.points);
+ save();render();
+}
+document.getElementById("undoBtn").onclick=undo;
+
+function cheer(t){
+ document.getElementById("cheerIcon").textContent=t.icon;
+ document.getElementById("cheerMsg").textContent=CHEERS[Math.floor(Math.random()*CHEERS.length)];
+ document.getElementById("cheerPts").textContent=`+${t.points} points for ${t.name}`;
+ const c=document.getElementById("cheer");c.classList.add("open");
+ clearTimeout(c._t);c._t=setTimeout(()=>c.classList.remove("open"),1600);
+}
+
+/* ---------- profile modal ---------- */
+let editingProfile=null;
+function pickRow(el,items,cur,cls){
+ el.innerHTML="";items.forEach(v=>{
+  const b=document.createElement("button");
+  b.type="button";b.className=cls+(v===cur?" sel":"");
+  if(cls==="swatch"){b.style.background=v;}
+  else b.textContent=v;
+  b.onclick=()=>{pickRow(el,items,v,cls);};
+  el.appendChild(b);
+ });
+ el._val=cur;el._def=items[0];
+}
+function pickVal(el){return el._val||el._def;}
+function openProfileModal(p){
+ editingProfile=p;
+ document.getElementById("pmTitle").textContent=p?"Edit profile":"New profile";
+ document.getElementById("pmName").value=p?p.name:"";
+ pickRow(document.getElementById("pmAvatars"),AVATARS,p?p.avatar:AVATARS[0],"pick");
+ document.getElementById("pmDelete").style.display=p?"":"none";
+ document.getElementById("profileModal").classList.add("open");
+ setTimeout(()=>document.getElementById("pmName").focus(),80);
+}
+document.getElementById("pmCancel").onclick=()=>document.getElementById("profileModal").classList.remove("open");
+document.getElementById("pmDelete").onclick=()=>{
+ if(!editingProfile)return;
+ if(!confirm(`Delete ${editingProfile.name}'s profile and all their points?`))return;
+ S.profiles=S.profiles.filter(x=>x.id!==editingProfile.id);
+ if(S.activeProfileId===editingProfile.id)S.activeProfileId=S.profiles[0]?S.profiles[0].id:null;
+ save();render();document.getElementById("profileModal").classList.remove("open");
+};
+document.getElementById("pmSave").onclick=()=>{
+ const name=document.getElementById("pmName").value.trim();
+ if(!name){alert("Give the profile a name!");return;}
+ const avatar=pickVal(document.getElementById("pmAvatars"));
+ if(editingProfile){editingProfile.name=name;editingProfile.avatar=avatar;}
+ else{const np={id:uid(),name,avatar,points:0,history:[]};S.profiles.push(np);S.activeProfileId=np.id;}
+ save();render();document.getElementById("profileModal").classList.remove("open");
+};
+
+/* ---------- tile modal ---------- */
+let editingTile=null;
+function openTileModal(t){
+ editingTile=t;
+ document.getElementById("tmTitle").textContent=t?"Edit tile":"New tile";
+ document.getElementById("tmName").value=t?t.name:"";
+ pickRow(document.getElementById("tmIcons"),ICONS,t?t.icon:ICONS[0],"pick");
+ pickRow(document.getElementById("tmColors"),COLORS,t?t.color:COLORS[0],"swatch");
+ document.getElementById("tmPoints").value=t?t.points:5;
+ document.getElementById("tmDelete").style.display=t?"":"none";
+ document.getElementById("tileModal").classList.add("open");
+ setTimeout(()=>document.getElementById("tmName").focus(),80);
+}
+document.getElementById("tmCancel").onclick=()=>document.getElementById("tileModal").classList.remove("open");
+document.getElementById("tmDelete").onclick=()=>{
+ if(!editingTile)return;
+ if(!confirm(`Delete the "${editingTile.name}" tile?`))return;
+ editingTile.hidden=true; /* keep history honest; hide rather than erase */
+ save();render();document.getElementById("tileModal").classList.remove("open");
+};
+document.getElementById("tmSave").onclick=()=>{
+ const name=document.getElementById("tmName").value.trim();
+ if(!name){alert("Give the tile a name!");return;}
+ const icon=pickVal(document.getElementById("tmIcons"));
+ const color=pickVal(document.getElementById("tmColors"));
+ const points=Math.min(100,Math.max(1,parseInt(document.getElementById("tmPoints").value)||5));
+ if(editingTile){Object.assign(editingTile,{name,icon,color,points});}
+ else{S.tiles.push({id:uid(),name,icon,color,points,hidden:false});}
+ save();render();document.getElementById("tileModal").classList.remove("open");
+};
+
+/* ---------- backup ---------- */
+document.getElementById("exportBtn").onclick=()=>{
+ const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+ a.download="habit-points-backup.json";a.click();URL.revokeObjectURL(a.href);
+};
+document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{try{const d=JSON.parse(r.result);
+   if(!d.profiles||!d.tiles)throw 0;
+   if(!confirm("Replace everything with this backup?"))return;
+   S=d;save();render();}catch(_){alert("That file doesn't look like a Habit Points backup.");}};
+ r.readAsText(f);e.target.value="";
+};
+
+/* ---------- service worker ---------- */
+if("serviceWorker"in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
+
+render();
+</script>
+</body>
+</html>
